@@ -24,10 +24,12 @@ class Player:
         max_suit = None
         suit_count = {"H": 0, "S": 0, "D": 0, "C": 0}
         for card in self.card_list[0:5]:
-            suit_count[card.suit] += 1
+            suit_count[card.suit] += card.number
         max_num = 0
+        print(suit_count)
         for suit in suit_count:
             if suit_count[suit] >= max_num:
+                max_num = suit_count[suit]
                 max_suit = suit
         return max_suit
 
@@ -74,14 +76,20 @@ def game_init():
         player = Player(i)
         players.append(player)
 
-    print(players[0].number)
+
     board = Board()
     board.reset()
     board.shuffle()
     board.distribute(players)
 
-    for card in players[3].card_list:
-        print("card: {},{}".format(card.number,card.suit))
+    # Who will play the trump
+    trump_player = random.randint(0, 3)
+    print(trump_player)
+    for card in players[trump_player].card_list[0:5]:
+        print("card: {},{}".format(card.number, card.suit))
+    board.trump = players[trump_player].define_trump()
+
+    print(board.trump)
 
 
 if __name__ == '__main__':
