@@ -24,34 +24,68 @@ class Player:
     def define_trump(self):
         max_suit = None
         suit_count = {"H": 0, "S": 0, "D": 0, "C": 0}
-        for card in self.card_list[0:5]:
+        for card in self.card_list[0:5]:                # Select the highest sum of suit in first 5 cards
             suit_count[card.suit] += card.number
         max_num = 0
-        print(suit_count)
         for suit in suit_count:
             if suit_count[suit] >= max_num:
                 max_num = suit_count[suit]
                 max_suit = suit
         return max_suit
 
-    def playcard(self, active_pile):
-        raise NotImplementedError
+    def get_suited_card_list(self, suits):
+        card_list = []
+        for card in self.card_list:
+            if card.suit in suits:
+                card_list.append(card)
+        return card_list
+
+    # This function defines the rules of playing coat piece
+    def play_card(self, active_pile, trump):
+
+        selected_card = None
+        if not active_pile:
+            card_num = random.randint(0, len(self.card_list) - 1)  # random card selector
+            selected_card = self.card_list[card_num]
+        else:
+            active_suit = active_pile[0].suit
+            legal_suits = [active_suit]
+            legal_card_list = self.get_suited_card_list(legal_suits)
+            if legal_card_list:
+                card_num = random.randint(0, len(legal_card_list) - 1)  # random card selector from active suit
+                selected_card = legal_card_list[card_num]
+
+            else:
+                legal_suits.append(trump)
+                legal_card_list = self.get_suited_card_list(legal_suits)
+                if legal_card_list:
+                    card_num = random.randint(0, len(legal_card_list) - 1)  # random card selector from trump
+                    selected_card = legal_card_list[card_num]
+                else:
+                    card_num = random.randint(0, len(self.card_list) - 1)  # random card selector from whole list
+                    selected_card = self.card_list[card_num]
+
+        active_pile.append(selected_card)
+        self.card_list.pop(self.card_list.index(selected_card))
 
 
 class Team:
     def __init__(self):
-        self.player_list = []
+        self.player_list = [] # Will contain the list of player numbers
         self.hands_made = 0
 
-    def add_player(self, player):
-        self.player_list.append(player)
+    def add_player(self, player_num):
+        self.player_list.append(player_num)
+
+    def check_player(self, player_num):
+        return player_num in self.player_list
 
 
 class Board:
     def __init__(self):
         self.trump = None
         self.discard_pile = []
-        self.active_cards = []
+        self.active_pile = []
         self.deck = []
         self.current_player = None
 
@@ -59,18 +93,17 @@ class Board:
         random.shuffle(self.deck)
 
     def generate_cards(self):
-        deck = []
+        self.deck = []
         for suit in SUITS:
-            for rank in range(2,15,1):
+            for rank in range(2, 15, 1):
                 card = Card(rank, suit)
-                deck.append(card)
-        return deck
+                self.deck.append(card)
 
     def reset(self):
         self.trump = None
         self.discard_pile = []
-        self.active_cards = []
-        self.deck = self.generate_cards()
+        self.active_pile = []
+        self.generate_cards()
 
     def distribute(self, players, trump_player, teams):
         current_player = trump_player
@@ -80,9 +113,9 @@ class Board:
             # Adding trump_player and the next to next player in team_a or teams[0] (even)
             # Adding rest of the players or teams[1] (odd)
             if i % 2 == 0:
-                teams[0].add_player(players[current_player])
+                teams[0].add_player(players[current_player].number)
             else:
-                teams[1].add_player(players[current_player])
+                teams[1].add_player(players[current_player].number)
             players[current_player].card_list = self.dealer(current_player)
             current_player = self.next_player(current_player)
 
@@ -109,13 +142,45 @@ class Board:
         else:
             return current_player + 1
 
+    def check_hand_winner(self):
+        high_card = self.active_pile[0]  # This will store the highest card of active suit
+        active_suit = self.active_pile[0].suit
+
+        high_card_trump = None
+        if active_suit == self.trump:
+            high_card_trump = high_card  # This will store highest trump card if trump is played
+
+        for i in range(1, NUMBER_OF_PLAYERS):
+
+            if self.active_pile[i].suit == active_suit and active_suit != self.trump:
+                if self.active_pile[i].number > high_card.number:
+                    high_card = self.active_pile[i]
+            elif self.active_pile[i].suit == self.trump:
+                if high_card_trump is None:
+                    high_card_trump = self.active_pile[i]
+                elif self.active_pile[i].number > high_card_trump.number:
+                    high_card_trump = self.active_pile[i]
+
+        if high_card_trump is None:
+            return high_card
+        else:
+            return high_card_trump
+
+    def clear_board(self):
+        self.discard_pile = self.discard_pile + self.active_pile
+        self.active_pile = []
+
 
 class Game:
     def __init__(self):
         self.winner = None
 
-    def check_winner(self):
-        raise NotImplementedError
+    def check_winner(self, teams):
+        if teams[0].hands_made > teams[1].hands_made:
+            self.winner = "Team A"
+        else:
+            self.winner = "Team B"
+
 
 def game_init():
     game = Game()
@@ -143,7 +208,7 @@ def game_init():
 
     board.current_player = trump_player
 
-    print(trump_player)
+    print("Player {} will play first".format(trump_player))
 
     # Check for trump
     # for card in players[trump_player].card_list[0:5]:
@@ -156,17 +221,38 @@ def game_init():
     #         for card in player.card_list[0:5]:
     #             print("card: {},{} ,Player-{}".format(card.number, card.suit, card.player))
 
-    print(board.trump)
+    print("TRUMP : {}".format(board.trump))
 
 
     # Game play  13 hands
 
     for hand in range(NUMBER_OF_HANDS):
         for turn in range(NUMBER_OF_PLAYERS):
-            players[board.current_player].playcard(board.active_cards)  # Player will select a card from his card list
+            players[board.current_player].play_card(board.active_pile, board.trump)  # Player will select a card from his card list
             board.current_player = board.next_player(board.current_player)
 
-        # check hand winner
+        """ ############ PRINT STATEMENTS ################ """
+        print("Hand {}:".format(hand+1))
+        for card in board.active_pile:
+            print("Player {}: Card ({},{})".format(card.player, card.number, card.suit))
+        """ ############################################## """
+
+        winner_card = board.check_hand_winner()     # check hand winner
+        board.current_player = winner_card.player   # The winner will play the first turn in next hand
+
+        if team_a.check_player(winner_card.player):  # Adding score to the winning team
+            team_a.hands_made += 1
+        else:
+            team_b.hands_made += 1
+
+        board.clear_board()     # Clearing the active game pile for next hand
+
+        print("Winner: Player {}, Team A: {}, Team B: {}".format(winner_card.player, team_a.hands_made, team_b.hands_made))
+        print("==============================================")
+    game.check_winner(teams)
+
+    print("Winning Team: {}".format(game.winner))
+
 
 if __name__ == '__main__':
     game_init()
