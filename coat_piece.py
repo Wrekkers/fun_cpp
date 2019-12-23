@@ -5,12 +5,19 @@ SUITS = ['H', 'S', 'D', 'C']    # H-Hearts, S-Spades, D-Diamond, C-Clubs
 NUMBER_OF_PLAYERS = 4
 NUMBER_OF_HANDS = 13
 
+SPADES = u"\u2660"
+DIAMONDS = u"\u2666"
+HEARTS = u"\u2665"
+CLUBS = u"\u2663"
+
+SYMBOLS = {'H': HEARTS, 'S': SPADES, 'D': DIAMONDS, 'C': CLUBS}
+CHARACTERS = {1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10, 11:'J', 12:'Q', 13:'K', 14:'A'}
+
 
 class Card:
     def __init__(self, num, suit):
         self.number = num           # The number on the card (2 - 14) [11-Jack, 12-Queen, 13-King, 14-Ace]
         self.suit = suit
-
 
 class Player:
     def __init__(self, num):
@@ -23,7 +30,7 @@ class Player:
         if manual and self.number == 0:
             first_five = ""
             for card in self.card_list[0:5]:
-                first_five = first_five + " ({},{}) ".format(card.number, card.suit)
+                first_five = first_five + " ({}{}) ".format(CHARACTERS[card.number], SYMBOLS[card.suit])
             print("Choose Trump from : {}".format(first_five))
             while max_suit not in ['H', 'S', 'D', 'C']:
                 max_suit = input("Enter (H/S/D/C) :").upper()
@@ -42,7 +49,7 @@ class Player:
     def print_card_list(self, card_list):
         print_card_list = ""
         for i, card in enumerate(card_list):
-            print_card_list = print_card_list + " {}:({},{}) ".format(i, card.number, card.suit)
+            print_card_list = print_card_list + " {}:({}{}) ".format(i, CHARACTERS[card.number], SYMBOLS[card.suit])
 
         return print_card_list
 
@@ -65,7 +72,7 @@ class Player:
 
         print("CARDS PLAYED: ")
         for playa in player_order[:-1]:         # Do not print cards of the latest added player
-            print("Player {}: ({},{})".format(playa, active_pile[playa].number, active_pile[playa].suit))
+            print("Player {}: ({}{})".format(playa, CHARACTERS[active_pile[playa].number], SYMBOLS[active_pile[playa].suit]))
 
         c_list = self.print_card_list(legal_card_list)
         print("YOUR HAND: {}".format(c_list))
@@ -180,7 +187,7 @@ class Board:
 
     def check_hand_winner(self):
         high_card = self.active_pile[self.player_order[0]]  # This will store the highest card of active suit
-        high_player = self.current_player
+        high_player = self.player_order[0]
         active_suit = self.active_pile[0].suit
 
         high_card_trump = None
@@ -272,7 +279,7 @@ class Game:
             print("Hand {}:".format(hand+1))
             for i in range(NUMBER_OF_PLAYERS):
                 card = board.active_pile[board.player_order[i]]
-                print("Player {}: Card ({},{})".format(board.player_order[i], card.number, card.suit))
+                print("Player {}: Card ({}{})".format(board.player_order[i], CHARACTERS[card.number], SYMBOLS[card.suit]))
             """ ############################################## """
 
             winner_player = board.check_hand_winner()     # check hand winner
